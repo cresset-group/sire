@@ -1,4 +1,4 @@
-import simtk.openmm as mm
+import openmm as mm
 import subprocess
 import re
 import os

@@ -272,7 +272,7 @@ if __name__ == "__main__":
     # openmm last as different repo
     if use_openmm:
         try:
-            import simtk.openmm
+            import openmm
             print("openmm is already installed...")
         except ImportError:
             if args.noconda:
