@@ -28,31 +28,18 @@
 
 #include <QDebug>
 #include <QList>
-#include <QMutex>
 #include <QPair>
 
-#include <limits>
 #include <cmath>
+#include <limits>
 
-#ifdef SIRE_USE_SSE
-    #ifdef __SSE__
-        #include <emmintrin.h>   // CONDITIONAL_INCLUDE
-    #else
-        #undef SIRE_USE_SSE
-    #endif
-#endif
-
-#include "triclinicbox.h"
 #include "coordgroup.h"
+#include "triclinicbox.h"
 
 #include "SireMaths/rangenerator.h"
 
-#include "SireBase/countflops.h"
-
 #include "SireError/errors.h"
 #include "SireStream/datastream.h"
-
-#include <QDebug>
 
 // Helper struct for sorting based on first pair value.
 struct QPairFirstComparer
@@ -127,6 +114,47 @@ TriclinicBox::TriclinicBox(const Vector &v0,
               v1_orig(v1),
               v2_orig(v2)
 {
+    this->construct(v0, v1, v2);
+}
+
+/** Construct a TriclinicBox with the specified lattice vector magnitudes
+    and angles.
+
+    a = magnitude of first lattice vector
+    b = magnitude of second lattice vector
+    c = magnitude of third lattice vector
+    alpha = angle between second and third lattice vectors
+    beta = angle between first and third lattice vectors
+    gamma = angle between second and first lattice vectors
+*/
+TriclinicBox::TriclinicBox(double a, double b, double c,
+                           const SireUnits::Dimension::Angle &alpha,
+                           const SireUnits::Dimension::Angle &beta,
+                           const SireUnits::Dimension::Angle &gamma)
+{
+    // Adapted from:
+    // https://github.com/rosswhitfield/ase/blob/master/ase/lattice/triclinic.py
+
+    auto cosa = cos(alpha.value());
+    auto cosb = cos(beta.value());
+    auto sinb = sin(beta.value());
+    auto cosg = cos(gamma.value());
+    auto sing = sin(gamma.value());
+
+    Vector v0(a, 0, 0);
+    Vector v1(b*cosg, b*sing, 0);
+    Vector v2(c*cosb, c*(cosa-cosb*cosg)/sing,
+              c*std::sqrt(sinb*sinb - (((cosa-cosb*cosg)/sing)*
+                                       ((cosa-cosb*cosg)/sing))));
+
+    this->construct(v0, v1, v2);
+}
+
+/** Construct a TriclinicBox with the specified lattice vectors */
+void TriclinicBox::construct(const Vector &v0,
+                        const Vector &v1,
+                        const Vector &v2)
+{
     // What follows was adapted from Appendex A from Chapter 3 of
     // "Molecular dynamics of sense and sensibility in processing and analysis of data"
     // by Tsjerk A. Wassenaar.
@@ -156,7 +184,7 @@ TriclinicBox::TriclinicBox(const Vector &v0,
 
     // Evaluate the square root of the difference between the length of v1 squared
     // and the projection of that vector on v0 squared.
-    auto yn1 = sqrt(m1*m1 - xn1*xn1);
+    auto yn1 = std::sqrt(m1*m1 - xn1*xn1);
 
     // Evaluate the vector product of v0 and v1 and take the magnitude.
     auto zn2 = Vector::realCross(v0, v1).magnitude();
@@ -199,7 +227,6 @@ TriclinicBox::TriclinicBox(const Vector &v0,
     {
         this->is_rotated = false;
     }
-
 
     /* Next perform a lattice reduction such that the following conditions are
        met:
@@ -276,13 +303,13 @@ TriclinicBox::TriclinicBox(const Vector &v0,
     }
 
     // Work out the angle between each pair of vectors.
-    this->alpha = Vector::angle(this->v1, this->v2).value();
-    this->beta = Vector::angle(this->v0, this->v2).value();
-    this->gamma = Vector::angle(this->v1, this->v0).value();
+    this->_alpha = Vector::angle(this->v1, this->v2).value();
+    this->_beta  = Vector::angle(this->v0, this->v2).value();
+    this->_gamma = Vector::angle(this->v1, this->v0).value();
 
-    auto cos_alpha = cos(this->alpha);
-    auto cos_beta = cos(this->beta);
-    auto cos_gamma = cos(this->gamma);
+    auto cos_alpha = cos(this->_alpha);
+    auto cos_beta  = cos(this->_beta);
+    auto cos_gamma = cos(this->_gamma);
 
     // Now work out the volume of the cell.
     this->vol = this->v0.magnitude() * this->v1.magnitude() * this->v2.magnitude() *
@@ -297,39 +324,7 @@ TriclinicBox::TriclinicBox(const Vector &v0,
                              1.0/this->v2.magnitude());
 }
 
-/** Construct a TriclinicBox with the specified lattice vector magnitudes
-    and angles.
 
-    a = magnitude of first lattice vector
-    b = magnitude of second lattice vector
-    c = magnitude of third lattice vector
-    alpha = angle between second and third lattice vectors
-    beta = angle between first and third lattice vectors
-    gamma = angle between second and first lattice vectors
-*/
-TriclinicBox::TriclinicBox(double a, double b, double c,
-                           const SireUnits::Dimension::Angle &alpha,
-                           const SireUnits::Dimension::Angle &beta,
-                           const SireUnits::Dimension::Angle &gamma)
-{
-    // Adapted from:
-    // https://github.com/rosswhitfield/ase/blob/master/ase/lattice/triclinic.py
-
-    auto cosa = cos(alpha.value());
-    auto cosb = cos(beta.value());
-    auto sinb = sin(beta.value());
-    auto cosg = cos(gamma.value());
-    auto sing = sin(gamma.value());
-
-    Vector v0(a, 0, 0);
-    Vector v1(b*cosg, b*sing, 0);
-    Vector v2(c*cosb, c*(cosa-cosb*cosg)/sing,
-              c*std::sqrt(sinb*sinb - (((cosa-cosb*cosg)/sing)*
-                                       ((cosa-cosb*cosg)/sing))));
-
-
-    *this = TriclinicBox(v0, v1, v2);
-}
 
 /** Copy constructor */
 TriclinicBox::TriclinicBox(const TriclinicBox &other)
@@ -346,9 +341,9 @@ TriclinicBox::TriclinicBox(const TriclinicBox &other)
               M(other.M),
               dist_max(other.dist_max),
               max_length(other.max_length),
-              alpha(other.alpha),
-              beta(other.beta),
-              gamma(other.gamma),
+              _alpha(other._alpha),
+              _beta(other._beta),
+              _gamma(other._gamma),
               vol(other.vol),
               is_rotated(other.is_rotated),
               invlength(other.invlength)
@@ -373,9 +368,9 @@ TriclinicBox& TriclinicBox::operator=(const TriclinicBox &other)
         cell_matrix = other.cell_matrix;
         dist_max = other.dist_max;
         max_length = other.max_length;
-        alpha = other.alpha;
-        beta = other.beta;
-        gamma = other.gamma;
+        _alpha = other._alpha;
+        _beta = other._beta;
+        _gamma = other._gamma;
         vol = other.vol;
         is_rotated = other.is_rotated;
         invlength = other.invlength;
@@ -417,33 +412,54 @@ bool TriclinicBox::isPeriodic() const
 bool TriclinicBox::isCartesian() const
 {
     // Only cubic boxes are Cartesian.
-    return this->alpha == M_PI_2 and
-           this->beta  == M_PI_2 and
-           this->gamma == M_PI_2;
+    return this->_alpha == M_PI_2 and
+           this->_beta  == M_PI_2 and
+           this->_gamma == M_PI_2;
 }
 
-/** Return the first box vector */
+/** Return the first box vector. */
 const Vector& TriclinicBox::vector0() const
 {
     return v0;
 }
 
-/** Return the second box vector */
+/** Return the second box vector. */
 const Vector& TriclinicBox::vector1() const
 {
     return v1;
 }
 
-/** Return the third box vector */
+/** Return the third box vector. */
 const Vector& TriclinicBox::vector2() const
 {
     return v2;
 }
 
-/** Return the rotation matrix */
+/** Return the rotation matrix. */
 const Matrix& TriclinicBox::rotationMatrix() const
 {
     return rotation_matrix;
+}
+
+/** Return the angle between the second and third box vectors in degrees. */
+double TriclinicBox::alpha() const
+{
+    double rad2deg = 180 / M_PI;
+    return _alpha * rad2deg;
+}
+
+/** Return the angle between the first and third box vectors in degrees. */
+double TriclinicBox::beta() const
+{
+    double rad2deg = 180 / M_PI;
+    return _beta * rad2deg;
+}
+
+/** Return the angle between the second and first box vectors in degrees. */
+double TriclinicBox::gamma() const
+{
+    double rad2deg = 180 / M_PI;
+    return _gamma * rad2deg;
 }
 
 /** Return the cell matrix */
@@ -468,7 +484,7 @@ TriclinicBox TriclinicBox::rhombicDodecahedronSquare(double d)
 {
     Vector v0(d, 0, 0);
     Vector v1(0, d, 0);
-    Vector v2(0.5*d, 0.5*d, 0.5*sqrt(2)*d);
+    Vector v2(0.5*d, 0.5*d, 0.5*std::sqrt(2)*d);
 
     return TriclinicBox(v0, v1, v2);
 }
@@ -477,8 +493,8 @@ TriclinicBox TriclinicBox::rhombicDodecahedronSquare(double d)
 TriclinicBox TriclinicBox::rhombicDodecahedronHexagon(double d)
 {
     Vector v0(d, 0, 0);
-    Vector v1(0.5, 0.5*sqrt(3)*d, 0);
-    Vector v2(0.5*d, (1/6.0)*sqrt(3)*d, (1/3.0)*sqrt(6)*d);
+    Vector v1(0.5, 0.5*std::sqrt(3)*d, 0);
+    Vector v2(0.5*d, (1/6.0)*std::sqrt(3)*d, (1/3.0)*std::sqrt(6)*d);
 
     return TriclinicBox(v0, v1, v2);
 }
@@ -487,8 +503,8 @@ TriclinicBox TriclinicBox::rhombicDodecahedronHexagon(double d)
 TriclinicBox TriclinicBox::truncatedOctahedron(double d)
 {
     Vector v0(d, 0, 0);
-    Vector v1(d/3.0, (2/3.0)*sqrt(2)*d, 0);
-    Vector v2(-d/3.0, (1/3.0)*sqrt(2)*d, (1/3.0)*sqrt(6)*d);
+    Vector v1(d/3.0, (2/3.0)*std::sqrt(2)*d, 0);
+    Vector v2(-d/3.0, (1/3.0)*std::sqrt(2)*d, (1/3.0)*std::sqrt(6)*d);
 
     return TriclinicBox(v0, v1, v2);
 }
@@ -723,7 +739,7 @@ double TriclinicBox::calcDist2(const CoordGroup &group, const Vector &point,
     }
 
     //return the minimum distance
-    return sqrt(mindist2);
+    return std::sqrt(mindist2);
 }
 
 /** Populate the matrix 'mat' with the distances^2 between all of the
@@ -767,7 +783,7 @@ double TriclinicBox::calcDist2(const CoordGroup &group0, const CoordGroup &group
     }
 
     //return the minimum distance
-    return sqrt(mindist2);
+    return std::sqrt(mindist2);
 }
 
 /** Populate the matrix 'mat' with the inverse distances between all of the
@@ -855,7 +871,7 @@ double TriclinicBox::calcInvDist2(const CoordGroup &group0, const CoordGroup &gr
     }
 
     //return the shortest distance
-    return 1.0 / sqrt(maxinvdist2);
+    return 1.0 / std::sqrt(maxinvdist2);
 }
 
 /** Calculate the distance vector between two points */
@@ -1071,7 +1087,7 @@ double TriclinicBox::minimumDistance(const CoordGroup &group0,
     }
 
     //return the minimum distance
-    return sqrt(mindist2);
+    return std::sqrt(mindist2);
 }
 
 /** Return the copy of the point 'point' which is the closest minimum image

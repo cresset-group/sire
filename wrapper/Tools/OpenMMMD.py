@@ -1,4 +1,3 @@
-
 ####################################################################################################
 #                                                                                                  #
 #   RUN SCRIPT to perform an MD simulation in Sire with OpenMM                                     #
@@ -87,8 +86,10 @@ dcd_root = Parameter("dcd root", "traj", """Root of the filename of the output D
 
 nmoves = Parameter("nmoves", 1000, """Number of Molecular Dynamics moves to be performed during the simulation.""")
 
-random_seed = Parameter("random seed", None, """Random number seed. Set this if you
-                         want to have reproducible simulations.""")
+debug_seed = Parameter("debug seed", 0, """Debugging seed number seed. Set this if you
+                         want to reproduce a single cycle. Don't use this seed for production simulations
+                         since the same seed will be used for all cycles! A value of zero means that a unique
+                         seed will be generated for each cycle.""")
 
 ncycles = Parameter("ncycles", 1,
                     """The number of MD cycles. The total elapsed time will be nmoves*ncycles*timestep""")
@@ -279,9 +280,9 @@ def writeSystemData(system, moves, Trajectory, block, softcore_lambda=False):
             else:
                 Trajectory.writeModel(system[MGName("all")], system.property("space"))
 
-    # Write an AMBER RST coordinate file each cycle.
-    rst = AmberRst(system)
-    rst.writeToFile("latest.rst")
+    # Write a PDB coordinate file each cycle.
+    pdb = PDB2(system)
+    pdb.writeToFile("latest.pdb")
 
     moves_file = open("moves.dat", "w")
     print("%s" % moves, file=moves_file)
@@ -455,7 +456,7 @@ def setupForcefields(system, space):
     return system
 
 
-def setupMoves(system, random_seed, GPUS):
+def setupMoves(system, debug_seed, GPUS):
 
     print("Setting up moves...")
 
@@ -507,11 +508,14 @@ def setupMoves(system, random_seed, GPUS):
     moves = WeightedMoves()
     moves.add(mdmove, 1)
 
-    if (not random_seed):
-        random_seed = RanGenerator().randInt(100000, 1000000)
-    print("Generated random seed number %d " % random_seed)
+    # Choose a random seed for Sire if a debugging seed hasn't been set.
+    if debug_seed == 0:
+        seed = RanGenerator().randInt(100000, 1000000)
+    else:
+        seed = debug_seed
+        print("Using debugging seed number %d " % debug_seed)
 
-    moves.setGenerator(RanGenerator(random_seed))
+    moves.setGenerator(RanGenerator(seed))
 
     return moves
 
@@ -793,35 +797,9 @@ increase from the heavy atom the hydrogen is bonded to.
         # Now that have worked out mass changes per molecule, update molecule
         for x in range(0,nats):
             at = atoms[x]
-            element_symbol = at.property('element').symbol()
             atidx = at.index()
             atmass = at.property("mass")
             newmass = atmass + atom_masses[atidx.value()]
-
-            # Make sure C and N have a minimum mass in CH3 and NH3
-            #
-            # NOTE: this will change the total mass but dG is independent of
-            #       mass
-            if element_symbol in MIN_MASSES:
-                minmass = MIN_MASSES[element_symbol]
-
-                if newmass.value() < minmass:
-                    newmass = minmass * g_per_mol
-
-                    if verbose:
-                        print(f'Modified mass (total mass changed) for '
-                              f'{element_symbol}-{atidx.value()}: old mass = '
-                              f'{atmass.value():.3f}, '
-                              f'new mass = {newmass.value():.3f}')
-
-            # Sanity check. Note this is likely to occur if hmassfactor > 4
-            if (newmass.value() < 0.0):
-                print ("WARNING! The mass of atom %s is less than zero after "
-                       "hydrogen mass repartitioning. This should not happen! "
-                       "Decrease hydrogen mass repartitioning factor in your "
-                       "cfg file and try again." % atidx)
-                sys.exit(-1)
-
 
             # Sanity check. Note this is likely to occur if hmassfactor > 4
             if (newmass.value() < 0.0):
@@ -1180,7 +1158,7 @@ def setupForceFieldsFreeEnergy(system, space):
     return system
 
 
-def setupMovesFreeEnergy(system, random_seed, GPUS, lam_val):
+def setupMovesFreeEnergy(system, debug_seed, GPUS, lam_val):
 
     print ("Setting up moves...")
 
@@ -1191,7 +1169,7 @@ def setupMovesFreeEnergy(system, random_seed, GPUS, lam_val):
     solute_fromdummy = system[MGName("solute_ref_fromdummy")]
 
     Integrator_OpenMM = OpenMMFrEnergyST(molecules, solute, solute_hard, solute_todummy, solute_fromdummy)
-    Integrator_OpenMM.setRandomSeed(random_seed)
+    Integrator_OpenMM.setRandomSeed(debug_seed)
     Integrator_OpenMM.setIntegrator(integrator_type.val)
     Integrator_OpenMM.setFriction(inverse_friction.val)  # Only meaningful for Langevin/Brownian integrators
     Integrator_OpenMM.setPlatform(platform.val)
@@ -1228,10 +1206,17 @@ def setupMovesFreeEnergy(system, random_seed, GPUS, lam_val):
         Integrator_OpenMM.setMCBarostat(barostat.val)
         Integrator_OpenMM.setMCBarostatFrequency(barostat_frequency.val)
 
+    # Choose a random seed for Sire if a debugging seed hasn't been set.
+    if debug_seed == 0:
+        seed = RanGenerator().randInt(100000, 1000000)
+    else:
+        seed = debug_seed
+        print("Using debugging seed number %d " % debug_seed)
+
     #This calls the OpenMMFrEnergyST initialise function
     Integrator_OpenMM.initialise()
     velocity_generator = MaxwellBoltzmann(temperature.val)
-    velocity_generator.setGenerator(RanGenerator(random_seed))
+    velocity_generator.setGenerator(RanGenerator(seed))
 
     mdmove = MolecularDynamics(molecules, Integrator_OpenMM, timestep.val,
                               {"velocity generator":velocity_generator})
@@ -1241,12 +1226,7 @@ def setupMovesFreeEnergy(system, random_seed, GPUS, lam_val):
     moves = WeightedMoves()
     moves.add(mdmove, 1)
 
-    if (not random_seed):
-        random_seed = RanGenerator().randInt(100000, 1000000)
-
-    print("Generated random seed number %d " % random_seed)
-
-    moves.setGenerator(RanGenerator(random_seed))
+    moves.setGenerator(RanGenerator(seed))
 
     return moves
 
@@ -1455,14 +1435,10 @@ def run():
 
         system = setupForcefields(system, space)
 
-        if random_seed.val:
-            ranseed = random_seed.val
-        else:
-            ranseed = RanGenerator().randInt(100000, 1000000)
+        if debug_seed.val != 0:
+            print("Setting up the simulation with debugging seed %s" % debug_seed.val)
 
-        print("Setting up the simulation with random seed %s" % ranseed)
-
-        moves = setupMoves(system, ranseed, gpu.val)
+        moves = setupMoves(system, debug_seed.val, gpu.val)
 
         print("Saving restart")
         Sire.Stream.save([system, moves], restart_file.val)
@@ -1613,14 +1589,10 @@ def runFreeNrg():
 
         system = setupForceFieldsFreeEnergy(system, space)
 
-        if random_seed.val:
-            ranseed = random_seed.val
-        else:
-            ranseed = RanGenerator().randInt(100000, 1000000)
+        if debug_seed.val != 0:
+            print("Setting up the simulation with debugging seed %s" % debug_seed.val)
 
-        print("Setting up the simulation with random seed %s" % ranseed)
-
-        moves = setupMovesFreeEnergy(system, ranseed, gpu.val, lambda_val.val)
+        moves = setupMovesFreeEnergy(system, debug_seed.val, gpu.val, lambda_val.val)
 
         print("Saving restart")
         Sire.Stream.save([system, moves], restart_file.val)

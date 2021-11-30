@@ -3177,7 +3177,7 @@ QStringList toLines(const QVector<AmberParams> &params,
     // Add the number of dummy atoms, i.e. NUMEXTRA.
     pointers[30] = num_dummies;
 
-    const int natyp = pointers[18];    // number of atom types
+    const int natyp = pointers[18];             // NATYP
 
     lines.append("%FLAG POINTERS");
     lines += writeIntData(pointers, AmberFormat( AmberPrm::INTEGER, 10, 8 ) );
@@ -3357,14 +3357,12 @@ QStringList toLines(const QVector<AmberParams> &params,
             const auto v0 = space.asA<TriclinicBox>().vector0();
             const auto v1 = space.asA<TriclinicBox>().vector1();
             const auto v2 = space.asA<TriclinicBox>().vector2();
+            double beta   = space.asA<TriclinicBox>().beta();
 
             QVector<double> box_dims(4);
 
-            // Radian to degree conversion factor.
-            double rad2deg = 180 / M_PI;
-
             QVector<double> boxdims(6);
-            box_dims[0] = Vector::angle(v0, v2).value()*rad2deg;
+            box_dims[0] = beta;
             box_dims[1] = v0.magnitude();
             box_dims[2] = v1.magnitude();
             box_dims[3] = v2.magnitude();
@@ -3646,8 +3644,8 @@ int AmberPrm::nDihedralsNoHydrogen() const
 /** Return the number of excluded atoms */
 int AmberPrm::nExcluded() const
 {
-    if (pointers.count() > 9)
-        return pointers[9];
+    if (pointers.count() > 10)
+        return pointers[10];
     else
         return 0;
 }
@@ -3655,8 +3653,8 @@ int AmberPrm::nExcluded() const
 /** Return the number of residues */
 int AmberPrm::nResidues() const
 {
-    if (pointers.count() > 10)
-        return pointers[10];
+    if (pointers.count() > 11)
+        return pointers[11];
     else
         return 0;
 }

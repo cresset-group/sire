@@ -33,8 +33,6 @@
 
 #include "SireMaths/matrix.h"
 
-#include <QDebug>
-
 SIRE_BEGIN_HEADER
 
 namespace SireVol
@@ -179,6 +177,15 @@ public:
     /** Return the third box vector. */
     const Vector& vector2() const;
 
+    /** Return the angle between v1 and v2 in degrees. */
+    double alpha() const;
+
+    /** Return the angle between v0 and v2 in degrees. */
+    double beta() const;
+
+    /** Return the angle between v1 and v0 in degrees. */
+    double gamma() const;
+
     /** Return the rotation matrix. */
     const Matrix& rotationMatrix() const;
 
@@ -198,6 +205,8 @@ public:
     static TriclinicBox truncatedOctahedron(double d);
 
 protected:
+
+    void construct(const Vector &v0, const Vector &v1, const Vector &v2);
 
     Vector wrapDelta(const Vector &v0, const Vector &v1) const;
 
@@ -245,14 +254,14 @@ protected:
     /** The maximum axis length of the cell. */
     double max_length;
 
-    /** The angle between vectors v0 and v2. */
-    double alpha;
+    /** The angle between vectors v1 and v2. */
+    double _alpha;
 
     /** The angle between vectors v0 and v2. */
-    double beta;
+    double _beta;
 
     /** The angle between vectors v1 and v2. */
-    double gamma;
+    double _gamma;
 
     /** The volume of the triclinic cell. */
     double vol;
