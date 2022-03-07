@@ -127,6 +127,9 @@ namespace SireMove {
         bool getMCBarostat(void);
         void setMCBarostat(bool);
 
+        bool getMCBarostatMembrane(void);
+        void setMCBarostatMembrane(bool);
+
         void setMCBarostatFrequency(int);
         int getMCBarostatFrequency(void);
 
@@ -248,6 +251,7 @@ namespace SireMove {
         double Andersen_frequency;
 
         bool MCBarostat_flag;
+        bool MCBarostat_membrane_flag;
         int MCBarostat_frequency;
 
         QString ConstraintType;

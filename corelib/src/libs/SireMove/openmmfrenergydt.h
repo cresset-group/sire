@@ -110,6 +110,9 @@ public:
 	bool getMCBarostat(void);
 	void setMCBarostat(bool);
 
+	bool getMCBarostat_membrane(void);
+	void setMCBarostat_membrane(bool);
+
 	void setMCBarostat_frequency(int);
 	int getMCBarostat_frequency(void);
 
@@ -180,6 +183,7 @@ private:
 	double Andersen_frequency;
 
 	bool MCBarostat_flag;
+	bool MCBarostat_membrane_flag;
 	int MCBarostat_frequency;
 
 	QString ConstraintType;
