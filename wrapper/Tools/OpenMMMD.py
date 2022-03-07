@@ -147,6 +147,8 @@ andersen = Parameter("thermostat", True,
 
 barostat = Parameter("barostat", True, """Whether or not to use a barostat (needed for NPT simulation).""")
 
+barostat_membrane = Parameter("membrane barostat", False, """Whether the barostat is a membrane barostat (needed for membrane simulation).""")
+
 andersen_frequency = Parameter("andersen frequency", 10.0, """Collision frequency in units of (1/ps)""")
 
 barostat_frequency = Parameter("barostat frequency", 25,
@@ -495,6 +497,8 @@ def setupMoves(system, debug_seed, GPUS):
     if barostat.val:
         Integrator_OpenMM.setPressure(pressure.val)
         Integrator_OpenMM.setMCBarostat(barostat.val)
+        if barostat_membrane.val:
+            Integrator_OpenMM.setMCBarostatMembrane(barostat_membrane.val)
         Integrator_OpenMM.setMCBarostatFrequency(barostat_frequency.val)
 
     #print Integrator_OpenMM.getDeviceIndex()
@@ -1204,6 +1208,8 @@ def setupMovesFreeEnergy(system, debug_seed, GPUS, lam_val):
     if barostat.val:
         Integrator_OpenMM.setPressure(pressure.val)
         Integrator_OpenMM.setMCBarostat(barostat.val)
+        if barostat_membrane.val:
+            Integrator_OpenMM.setMCBarostatMembrane(barostat_membrane.val)
         Integrator_OpenMM.setMCBarostatFrequency(barostat_frequency.val)
 
     # Choose a random seed for Sire if a debugging seed hasn't been set.

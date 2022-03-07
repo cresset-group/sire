@@ -384,6 +384,17 @@ void register_OpenMMFrEnergyST_class(){
                 , "" );
         
         }
+        { //::SireMove::OpenMMFrEnergyST::getMCBarostatMembrane
+        
+            typedef bool ( ::SireMove::OpenMMFrEnergyST::*getMCBarostatMembrane_function_type)(  ) ;
+            getMCBarostatMembrane_function_type getMCBarostatMembrane_function_value( &::SireMove::OpenMMFrEnergyST::getMCBarostatMembrane );
+            
+            OpenMMFrEnergyST_exposer.def( 
+                "getMCBarostatMembrane"
+                , getMCBarostatMembrane_function_value
+                , "" );
+        
+        }
         { //::SireMove::OpenMMFrEnergyST::getMCBarostatFrequency
         
             typedef int ( ::SireMove::OpenMMFrEnergyST::*getMCBarostatFrequency_function_type)(  ) ;
@@ -795,6 +806,18 @@ void register_OpenMMFrEnergyST_class(){
                 , "Set Monte Carlo Barostat onoff" );
         
         }
+        { //::SireMove::OpenMMFrEnergyST::setMCBarostatMembrane
+        
+            typedef void ( ::SireMove::OpenMMFrEnergyST::*setMCBarostatMembrane_function_type)( bool ) ;
+            setMCBarostatMembrane_function_type setMCBarostatMembrane_function_value( &::SireMove::OpenMMFrEnergyST::setMCBarostatMembrane );
+            
+            OpenMMFrEnergyST_exposer.def( 
+                "setMCBarostatMembrane"
+                , setMCBarostatMembrane_function_value
+                , ( bp::arg("arg0") )
+                , "Set Monte Carlo Membrane Barostat onoff (only has an effect if Monte Carlo Barostat is on)" );
+        
+        }
         { //::SireMove::OpenMMFrEnergyST::setMCBarostatFrequency
         
             typedef void ( ::SireMove::OpenMMFrEnergyST::*setMCBarostatFrequency_function_type)( int ) ;
@@ -804,7 +827,7 @@ void register_OpenMMFrEnergyST_class(){
                 "setMCBarostatFrequency"
                 , setMCBarostatFrequency_function_value
                 , ( bp::arg("arg0") )
-                , "Set the Monte Carlo Barostat frequency in time speps" );
+                , "Set the Monte Carlo Barostat frequency in time steps" );
         
         }
         { //::SireMove::OpenMMFrEnergyST::setPlatform
