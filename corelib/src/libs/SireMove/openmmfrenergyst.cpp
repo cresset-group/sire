@@ -3919,12 +3919,12 @@ bool OpenMMFrEnergyST::getMCBarostat(void)
     return MCBarostat_flag;
 }
 
-void OpenMMFrEnergyST::setMCBarostat_membrane(bool MCBarostat_membrane)
+void OpenMMFrEnergyST::setMCBarostatMembrane(bool MCBarostat_membrane)
 {
     MCBarostat_membrane_flag = MCBarostat_membrane;
 }
 
-bool OpenMMFrEnergyST::getMCBarostat_membrane(void)
+bool OpenMMFrEnergyST::getMCBarostatMembrane(void)
 {
     return MCBarostat_membrane_flag;
 }
