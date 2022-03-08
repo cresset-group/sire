@@ -128,8 +128,8 @@ namespace SireMove {
         bool getMCBarostat(void);
         void setMCBarostat(bool);
 
-        bool getMCBarostat_membrane(void);
-        void setMCBarostat_membrane(bool);
+        bool getMCBarostatMembrane(void);
+        void setMCBarostatMembrane(bool);
 
         void setMCBarostatFrequency(int);
         int getMCBarostatFrequency(void);
