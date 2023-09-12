@@ -2526,6 +2526,8 @@ def selectWatersForPerturbation(system, charge_diff):
             mol = water_pert.applyTemplate(mol)
             mol = mol.edit().rename(WATER_NAME).commit()
 
+            print("Selecting water %s for charge perturbation\n" % repr(mol.residues()[0]) );
+
             changedmols.add(mol)
 
     system.update(changedmols)
@@ -2836,8 +2838,8 @@ def runFreeNrg():
         if debug_seed.val != 0:
             print("Setting up the simulation with debugging seed %s" % debug_seed.val)
 
+        print("The difference in charge is", charge_diff.val)
         if charge_diff.val != 0:
-            print("The difference in charge is", charge_diff.val)
             system = selectWatersForPerturbation(system, charge_diff.val)
 
         moves = setupMovesFreeEnergy(system, debug_seed.val, gpu.val, lambda_val.val)
