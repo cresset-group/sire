@@ -1,6 +1,8 @@
 #ifndef SIRE_RDKIT_H
 #define SIRE_RDKIT_H
 
+ #include <cstdint>
+
 #include "GraphMol/GraphMol.h"
 
 #include "SireMol/selectormol.h"
