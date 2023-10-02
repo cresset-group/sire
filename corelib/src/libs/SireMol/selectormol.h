@@ -91,6 +91,8 @@ namespace SireMol
         SelectorMol(const MoleculeGroup &mols);
         SelectorMol(const MolGroupsBase &mols);
         SelectorMol(const SelectResult &mols);
+        SelectorMol(const QList<Molecule> &mols);
+        SelectorMol(const QVector<Molecule> &mols);
 
         template <class T>
         SelectorMol(const SelectorM<T> &other);
@@ -142,10 +144,21 @@ namespace SireMol
 
         void update(const Molecules &molecules);
 
+        SelectorMol operator+(const Molecule &mol) const;
+        SelectorMol operator+(const SelectorMol &mols) const;
+
+        SelectorMol &operator+=(const Molecule &mol);
+        SelectorMol &operator+=(const SelectorMol &mols);
+
+        void append(const Molecule &mol);
+        void append(const SelectorMol &mols);
+
         EvaluatorM evaluate() const;
 
         MoleculeGroup toMoleculeGroup() const;
         SelectResult toSelectResult() const;
+
+        SelectorMol extract() const;
 
         bool isSelector() const;
 
@@ -360,18 +373,6 @@ namespace SireMol
 } // end of namespace SireMol
 
 #endif // SIRE_SKIP_INLINE_FUNCTIONS
-
-#ifdef SIRE_INSTANTIATE_TEMPLATES
-
-#include "selectorm.hpp"
-
-template class SireMol::SelectorM<SireMol::Atom>;
-template class SireMol::SelectorM<SireMol::Residue>;
-template class SireMol::SelectorM<SireMol::Chain>;
-template class SireMol::SelectorM<SireMol::Segment>;
-template class SireMol::SelectorM<SireMol::CutGroup>;
-
-#endif // SIRE_INSTANTIATE_TEMPLATES
 
 SIRE_END_HEADER
 

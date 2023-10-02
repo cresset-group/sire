@@ -8,6 +8,7 @@ set ( PYPP_SOURCES
        Atom.pypp.cpp
        AtomBeads.pypp.cpp
        AtomCharges.pypp.cpp
+       AtomChiralities.pypp.cpp
        AtomCoords.pypp.cpp
        AtomCutting.pypp.cpp
        AtomDoubleArrayProperty.pypp.cpp
@@ -17,6 +18,7 @@ set ( PYPP_SOURCES
        AtomEnergies.pypp.cpp
        AtomFloatProperty.pypp.cpp
        AtomForces.pypp.cpp
+       AtomHybridizations.pypp.cpp
        AtomID.pypp.cpp
        AtomIDMatcher.pypp.cpp
        AtomIdx.pypp.cpp
@@ -64,8 +66,8 @@ set ( PYPP_SOURCES
        Beads.pypp.cpp
        BondHunter.pypp.cpp
        BondID.pypp.cpp
+       BondOrder.pypp.cpp
        BondPerturbation.pypp.cpp
-       BondType.pypp.cpp
        CGAtomID.pypp.cpp
        CGAtomIdx.pypp.cpp
        CGChainID.pypp.cpp
@@ -102,6 +104,7 @@ set ( PYPP_SOURCES
        ChainsWithRes.pypp.cpp
        ChargePerturbation.pypp.cpp
        ChemicalBondHunter.pypp.cpp
+       Chirality.pypp.cpp
        Connectivity.pypp.cpp
        ConnectivityBase.pypp.cpp
        ConnectivityEditor.pypp.cpp
@@ -119,6 +122,7 @@ set ( PYPP_SOURCES
        GeometryPerturbation.pypp.cpp
        GeometryPerturbations.pypp.cpp
        GroupAtomIDBase.pypp.cpp
+       Hybridization.pypp.cpp
        IDAndSet_AtomID_.pypp.cpp
        IDAndSet_CGID_.pypp.cpp
        IDAndSet_ChainID_.pypp.cpp
@@ -259,7 +263,7 @@ set ( PYPP_SOURCES
        Specify_MGID_.pypp.cpp
        Specify_ResID_.pypp.cpp
        Specify_SegID_.pypp.cpp
-       Stereoscopy.pypp.cpp
+       Stereochemistry.pypp.cpp
        Trajectory.pypp.cpp
        UserBeading.pypp.cpp
        Velocity3D.pypp.cpp

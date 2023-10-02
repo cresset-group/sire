@@ -89,9 +89,15 @@ namespace bp = boost::python;
 
 #include "atomvelocities.h"
 
-#include "SireBase/propertylist.h"
-
 #include "SireError/errors.h"
+
+#include "chirality.h"
+
+#include <QDebug>
+
+#include "hybridization.h"
+
+#include "SireBase/propertylist.h"
 
 #include "SireMaths/vector.h"
 
@@ -256,6 +262,26 @@ SireMol::AtomEditorBase& set_Metadata_SireMol_AtomVelocities_function2(
                                   SireMol::AtomEditorBase &molview,
                                    const QString &key, const QString &metakey, const SireMaths::Vector3D<SireUnits::Dimension::Velocity> &p)
                                    { return molview.setMetadata< SireMaths::Vector3D<SireUnits::Dimension::Velocity> >(key, metakey, p); }
+
+SireMol::AtomEditorBase& set_Metadata_SireMol_AtomChiralities_function1(
+                                  SireMol::AtomEditorBase &molview,
+                                   const QString &metakey, const SireMol::Chirality &p)
+                                   { return molview.setMetadata< SireMol::Chirality >(metakey, p); }
+
+SireMol::AtomEditorBase& set_Metadata_SireMol_AtomChiralities_function2(
+                                  SireMol::AtomEditorBase &molview,
+                                   const QString &key, const QString &metakey, const SireMol::Chirality &p)
+                                   { return molview.setMetadata< SireMol::Chirality >(key, metakey, p); }
+
+SireMol::AtomEditorBase& set_Metadata_SireMol_AtomHybridizations_function1(
+                                  SireMol::AtomEditorBase &molview,
+                                   const QString &metakey, const SireMol::Hybridization &p)
+                                   { return molview.setMetadata< SireMol::Hybridization >(metakey, p); }
+
+SireMol::AtomEditorBase& set_Metadata_SireMol_AtomHybridizations_function2(
+                                  SireMol::AtomEditorBase &molview,
+                                   const QString &key, const QString &metakey, const SireMol::Hybridization &p)
+                                   { return molview.setMetadata< SireMol::Hybridization >(key, metakey, p); }
 
 SireMol::AtomEditorBase& set_Metadata_SireMol_AtomStringProperty_function1(
                                   SireMol::AtomEditorBase &molview,
@@ -895,6 +921,14 @@ void register_AtomEditorBase_class(){
                                            &SireMol::AtomEditorBase::setProperty< SireMaths::Vector3D<SireUnits::Dimension::Velocity> >, bp::return_self< >() );
         AtomEditorBase_exposer.def( "_set_metadata_SireMaths_Vector3D_SireUnits_Dimension_Velocity_", &set_Metadata_SireMol_AtomVelocities_function1, bp::return_self< >());
         AtomEditorBase_exposer.def( "_set_metadata_SireMaths_Vector3D_SireUnits_Dimension_Velocity_", &set_Metadata_SireMol_AtomVelocities_function2, bp::return_self< >());
+        AtomEditorBase_exposer.def( "_set_property_SireMol_Chirality",
+                                           &SireMol::AtomEditorBase::setProperty< SireMol::Chirality >, bp::return_self< >() );
+        AtomEditorBase_exposer.def( "_set_metadata_SireMol_Chirality", &set_Metadata_SireMol_AtomChiralities_function1, bp::return_self< >());
+        AtomEditorBase_exposer.def( "_set_metadata_SireMol_Chirality", &set_Metadata_SireMol_AtomChiralities_function2, bp::return_self< >());
+        AtomEditorBase_exposer.def( "_set_property_SireMol_Hybridization",
+                                           &SireMol::AtomEditorBase::setProperty< SireMol::Hybridization >, bp::return_self< >() );
+        AtomEditorBase_exposer.def( "_set_metadata_SireMol_Hybridization", &set_Metadata_SireMol_AtomHybridizations_function1, bp::return_self< >());
+        AtomEditorBase_exposer.def( "_set_metadata_SireMol_Hybridization", &set_Metadata_SireMol_AtomHybridizations_function2, bp::return_self< >());
         AtomEditorBase_exposer.def( "_set_property_QString",
                                            &SireMol::AtomEditorBase::setProperty< QString >, bp::return_self< >() );
         AtomEditorBase_exposer.def( "_set_metadata_QString", &set_Metadata_SireMol_AtomStringProperty_function1, bp::return_self< >());

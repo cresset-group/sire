@@ -268,6 +268,16 @@ SelectorMol::SelectorMol(const Molecules &molecules) : ConcreteProperty<Selector
     }
 }
 
+SelectorMol::SelectorMol(const QList<Molecule> &molecules) : ConcreteProperty<SelectorMol, Property>()
+{
+    mols = molecules;
+}
+
+SelectorMol::SelectorMol(const QVector<Molecule> &molecules) : ConcreteProperty<SelectorMol, Property>()
+{
+    mols = QList<Molecule>(molecules.constBegin(), molecules.constEnd());
+}
+
 SelectorMol::SelectorMol(const MoleculeGroup &molecules) : ConcreteProperty<SelectorMol, Property>()
 {
     if (not molecules.isEmpty())
@@ -383,6 +393,42 @@ Molecule SelectorMol::operator[](const MolID &molid) const
     return this->molecule(molid);
 }
 
+SelectorMol SelectorMol::operator+(const Molecule &mol) const
+{
+    SelectorMol ret(*this);
+    ret += mol;
+    return ret;
+}
+
+SelectorMol SelectorMol::operator+(const SelectorMol &mols) const
+{
+    SelectorMol ret(*this);
+    ret += mols;
+    return ret;
+}
+
+SelectorMol &SelectorMol::operator+=(const Molecule &mol)
+{
+    this->append(mol);
+    return *this;
+}
+
+SelectorMol &SelectorMol::operator+=(const SelectorMol &mols)
+{
+    this->append(mols);
+    return *this;
+}
+
+void SelectorMol::append(const Molecule &mol)
+{
+    this->mols.append(mol);
+}
+
+void SelectorMol::append(const SelectorMol &other)
+{
+    this->mols.append(other.mols);
+}
+
 QList<MolViewPtr> SelectorMol::toList() const
 {
     QList<MolViewPtr> l;
@@ -404,6 +450,11 @@ Molecules SelectorMol::toMolecules() const
 SelectResult SelectorMol::toSelectResult() const
 {
     return SelectResult(this->mols);
+}
+
+SelectorMol SelectorMol::extract() const
+{
+    return *this;
 }
 
 bool SelectorMol::isSelector() const
@@ -710,7 +761,7 @@ SelectorMol SelectorMol::molecules(const MolNum &molnum, const PropertyMap &) co
 
 MoleculeGroup SelectorMol::toMoleculeGroup() const
 {
-    MoleculeGroup grp;
+    MoleculeGroup grp("all");
 
     for (const auto &mol : this->mols)
     {

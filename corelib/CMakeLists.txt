@@ -51,6 +51,23 @@ message(STATUS "Configuring on a machine with number of cores = ${NCORES}")
 
 message( STATUS "Building into an existing conda installation..." )
 
+# "PREFIX" will be set by conda-build - make sure we use this,
+# and don't accidentally try to use "BUILD_PREFIX"
+if ((DEFINED ENV{PREFIX}) AND (DEFINED ENV{BUILD_PREFIX}))
+  message(STATUS "This is a conda build to create a conda package")
+  message(STATUS "PREFIX = $ENV{PREFIX}")
+  message(STATUS "BUILD_PREFIX = $ENV{BUILD_PREFIX}")
+  if (WIN32)
+    # make sure we use Unix path separators, as this will be stored
+    # in the CMake cache, and using Windows path separators will
+    # cause failures due to invalid string escape sequences
+    string(REPLACE "\\" "/" ANACONDA_BASE "$ENV{PREFIX}")
+  else()
+    set( ANACONDA_BASE "$ENV{PREFIX}")
+  endif()
+  message(STATUS "USING ANACONDA_BASE = ${ANACONDA_BASE}")
+endif()
+
 # Where is anaconda installed
 if (NOT DEFINED ANACONDA_BASE)
   set( ANACONDA_BASE "$ENV{HOME}/miniconda3" CACHE PATH
@@ -211,7 +228,9 @@ save_sire_variable( "SIRE_TEST" "${SIRE_TEST}" )
 # set (CMAKE_VERBOSE_MAKEFILE ON)
 
 # Path to the project's extra cmake files
+message(STATUS "PRE-PATH: ${CMAKE_MODULE_PATH}")
 set (CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/build/cmake)
+message(STATUS "CMAKE_MODULE_PATH: ${CMAKE_MODULE_PATH}")
 
 # Options to pass to 'strip' when stripping the libraries
 # (on Linux, AIX and MacOS need to use '-x' to ensure we leave
@@ -336,15 +355,23 @@ if (SIRE_HAS_CPP_LIB)
   endif()
 endif()
 
+# We now require C++ 17 to build the RDKit plugin
 if ( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
   CHECK_CXX_COMPILER_FLAG( "/std:c++14" SIRE_HAS_CPP_14 )
 else()
   CHECK_CXX_COMPILER_FLAG( "-std=c++14" SIRE_HAS_CPP_14 )
 endif()
 
+if ( CMAKE_CXX_COMPILER_ID MATCHES "MSVC" )
+  CHECK_CXX_COMPILER_FLAG( "/std:c++17" SIRE_HAS_CPP_17 )
+else()
+  CHECK_CXX_COMPILER_FLAG( "-std=c++17" SIRE_HAS_CPP_17 )
+endif()
+
 save_sire_variable( "SIRE_HAS_CPP_LIB" "${SIRE_HAS_CPP_LIB}" )
 
 save_sire_variable( "SIRE_HAS_CPP_14" "${SIRE_HAS_CPP_14}" )
+save_sire_variable( "SIRE_HAS_CPP_17" "${SIRE_HAS_CPP_17}" )
 
 option( SIRE_SKIP_LIBC++ "Force Sire to ignore libc++ (e.g. in case of broken clang on linux" OFF )
 
@@ -362,7 +389,46 @@ endif()
 
 set(NEED_UNDEF_STRICT_ANSI FALSE)
 
-if (SIRE_HAS_CPP_14)
+if (SIRE_HAS_CPP_17)
+  message(STATUS "Compiler supports C++ 2017")
+  set(SIRE_CXX_NG_FLAGS "${SIRE_CXX_NG_FLAGS} ${SLASH_HYPHEN}std${COLON_EQUALS}c++17 ${SLASH_HYPHEN}DSIRE_HAS_CPP_17 ${SLASH_HYPHEN}DSIRE_HAS_CPP_14 ${SLASH_HYPHEN}DSIRE_HAS_CPP_1Y ${SLASH_HYPHEN}DSIRE_HAS_CPP_11")
+
+  if (APPLE)
+    # C++ 2017 does not support aligned_alloc on old MacOS - check for this!
+    set(CMAKE_OLD_REQUIRED_FLAGS ${CMAKE_REQUIRED_FLAGS})
+    set(CMAKE_REQUIRED_FLAGS "-O3 -std=c++17")
+    CHECK_CXX_SOURCE_RUNS("
+              #include <cstdio>
+              #include <cstdlib>
+
+              int main()
+              {
+                  int* p1 = static_cast<int*>(std::malloc(10*sizeof *p1));
+                  std::free(p1);
+
+                  int* p2 = static_cast<int*>(std::aligned_alloc(1024, 1024));
+                  std::free(p2);
+              }"
+           CAN_USE_ALIGNED_MALLOC)
+    set(CMAKE_REQUIRED_FLAGS ${CMAKE_OLD_REQUIRED_FLAGS})
+
+    if (CAN_USE_ALIGNED_MALLOC)
+      message(STATUS "Can use aligned memory allocation with C++ 2017")
+      message(STATUS "But, disabling it anyway!")
+      set(SIRE_CXX_NG_FLAGS "${SIRE_CXX_NG_FLAGS} -fno-aligned-allocation -U__STRICT_ANSI__")
+    else()
+      message(STATUS "Aligned memory allocation on C++ 2017 is not supported.")
+      message(STATUS "Disabling aligned allocation support with '-fno-aligned-allocation'")
+      set(SIRE_CXX_NG_FLAGS "${SIRE_CXX_NG_FLAGS} -fno-aligned-allocation -U__STRICT_ANSI__")
+    endif()
+
+  endif()
+
+  if (NEED_UNDEF_STRICT_ANSI)
+    message( STATUS "Undefining __STRICT_ANSI__ because of compile problems")
+    set(SIRE_CXX_NG_FLAGS "${SIRE_CXX_NG_FLAGS} -U__STRICT_ANSI__")
+  endif()
+elseif (SIRE_HAS_CPP_14)
   message(STATUS "Compiler supports C++ 2014")
   set(SIRE_CXX_NG_FLAGS "${SIRE_CXX_NG_FLAGS} ${SLASH_HYPHEN}std${COLON_EQUALS}c++14 ${SLASH_HYPHEN}DSIRE_HAS_CPP_14 ${SLASH_HYPHEN}DSIRE_HAS_CPP_1Y ${SLASH_HYPHEN}DSIRE_HAS_CPP_11")
 

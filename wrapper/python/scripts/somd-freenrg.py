@@ -142,7 +142,8 @@ if args.lambda_val:
     lambda_val = float(args.lambda_val)
     params["lambda_val"] = lambda_val
 
-params['charge difference'] = args.charge_diff
+if args.charge_diff:
+    params['charge difference'] = args.charge_diff
 
 if not (os.path.exists(coord_file) and os.path.exists(top_file) and os.path.exists(morph_file)):
     parser.print_help()

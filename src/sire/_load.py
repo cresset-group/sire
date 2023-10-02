@@ -9,6 +9,7 @@ __all__ = [
     "tutorial_url",
     "load_test_files",
     "supported_formats",
+    "smiles",
 ]
 
 
@@ -570,3 +571,92 @@ def load_test_files(files: _Union[_List[str], str], *args):
 
     files = expand(tutorial_url, files, suffix=".bz2")
     return load(files, directory=cache_dir, silent=True)
+
+
+def smiles(
+    smiles: str,
+    label: str = None,
+    labels: str = None,
+    smiles_column: str = "smiles",
+    labels_column: str = "labels",
+    add_hydrogens: bool = True,
+    generate_coordinates: bool = True,
+    map=None,
+):
+    """
+    Return a molecule that has been generated using the passed
+    smiles string. This uses rdkit to create the molecule,
+    so it must be installed.
+
+    Args:
+        smiles: str or list[str] or pandas.Dataframe
+            The smiles string to interpret. This can be a single smiles string,
+            a list of smiles strings, or a pandas Dataframe containing
+            a smiles column and a label column (either called this, or
+            use options below to name them yourself)
+        label: str
+            The label for the molecule being created. This can only
+            be a single string. If it is set, then `labels` will be
+            ignored.
+        labels: str or list[str]
+            The label (name) for the molecule that will be created.
+            This should be a single string or a list of strings depending
+            on 'smiles'. Note that this will be ignored if a
+            Dataframe is passed in. Note that if this is not passed in
+            then the label will be taken from the smiles string
+        smiles_column: str
+            The name of the smiles column in the Dataframe (default 'smiles')
+        labels_column: str
+            The name of the labels column in the Dataframe (default 'labels')
+        add_hydrogens: bool (default True)
+            Whether or not to automatically add hydrogens
+        generate_coordinates: bool (default True)
+            Whether or not to automatically generate 3D coordinates.
+            Note that generating the coordinates will automatically
+            switch on addition of hydrogens
+        map:
+            Property map if you want to put the molecule properties
+            into different places
+
+    Returns: sire.mol.Molecule
+        The actual molecule
+    """
+    from .convert import rdkit_to_sire
+    from .legacy.Convert import smiles_to_rdkit
+
+    if hasattr(smiles, "to_csv"):
+        # convert to a pair of lists from the dataframe
+        labels = smiles[[labels_column]]
+        smiles = smiles[[smiles_column]]
+
+    elif type(smiles) is not list:
+        smiles = [smiles]
+
+    if type(smiles) is list:
+        if label is not None:
+            labels = label
+
+        if labels is None:
+            labels = smiles
+        elif type(labels) is not list:
+            labels = [labels]
+
+        if len(smiles) != len(labels):
+            raise ValueError(
+                f"The number of smiles strings {len(smiles)} must match the "
+                f"number of labels ({len(labels)})"
+            )
+
+    from .base import create_map
+
+    map = create_map(
+        map,
+        {
+            "add_hydrogens": add_hydrogens,
+            "generate_coordinates": generate_coordinates,
+        },
+    )
+
+    rdkit_mols = smiles_to_rdkit(smiles, labels, map)
+
+    return rdkit_to_sire(rdkit_mols)

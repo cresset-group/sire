@@ -136,6 +136,8 @@ namespace SireMol
 
         bool isSelector() const;
 
+        SelectorMol extract() const;
+
         QList<qint64> find(const T &view) const;
         QList<qint64> find(const Selector<T> &views) const;
         QList<qint64> find(const SelectorM<T> &views) const;
@@ -1212,8 +1214,6 @@ namespace SireMol
     {
         QList<qint64> matches;
 
-        qint64 start = 0;
-
         for (const auto &view : views)
         {
             const auto m = this->find(view);
@@ -1231,6 +1231,36 @@ namespace SireMol
     QList<qint64> Selector<T>::find(const SelectorM<T> &views) const
     {
         return SelectorM<T>(*this).find(views);
+    }
+
+    template <class T>
+    SIRE_OUTOFLINE_TEMPLATE SelectorMol SelectorM<T>::extract() const
+    {
+        const int nmols = this->count();
+
+        const bool uses_parallel = nmols < 16;
+
+        QVector<Molecule> mols(nmols);
+        Molecule *mols_data = mols.data();
+
+        if (uses_parallel)
+        {
+            tbb::parallel_for(tbb::blocked_range<int>(0, nmols), [&](tbb::blocked_range<int> r)
+                              {
+                for (int i=r.begin(); i<r.end(); ++i)
+                {
+                    mols_data[i] = this->operator()(i).extract();
+                } });
+        }
+        else
+        {
+            for (int i = 0; i < nmols; ++i)
+            {
+                mols_data[i] = this->operator()(i).extract();
+            }
+        }
+
+        return SelectorMol(mols);
     }
 
     template <class T>
@@ -1552,7 +1582,7 @@ namespace SireMol
     template <class T>
     SIRE_OUTOFLINE_TEMPLATE MoleculeGroup SelectorM<T>::toMoleculeGroup() const
     {
-        MoleculeGroup grp;
+        MoleculeGroup grp("all");
 
         for (const auto &view : this->vws)
         {
@@ -2367,6 +2397,16 @@ namespace SireMol
 } // end of namespace SireMol
 
 #endif // SIRE_SKIP_INLINE_FUNCTIONS
+
+#ifdef SIRE_INSTANTIATE_TEMPLATES
+
+template class SireMol::SelectorM<SireMol::Atom>;
+template class SireMol::SelectorM<SireMol::Residue>;
+template class SireMol::SelectorM<SireMol::Chain>;
+template class SireMol::SelectorM<SireMol::Segment>;
+template class SireMol::SelectorM<SireMol::CutGroup>;
+
+#endif // SIRE_INSTANTIATE_TEMPLATES
 
 SIRE_END_HEADER
 

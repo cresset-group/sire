@@ -52,7 +52,7 @@ set ( SIREMOL_HEADERS
       beads.h
       bondhunter.h
       bondid.h
-      bondtype.h
+      bondorder.h
       calculateaxes.hpp
       cgatomidx.h
       cgeditor.h
@@ -70,6 +70,7 @@ set ( SIREMOL_HEADERS
       chainproperty.hpp
       chainresid.h
       chargeperturbation.h
+      chirality.h
       connectivity.h
       core.h
       cutgroup.h
@@ -86,6 +87,7 @@ set ( SIREMOL_HEADERS
       geometryperturbation.h
       groupatomids.h
       groupgroupids.h
+      hybridization.h
       mgid.h
       mgidentifier.h
       mgidsandmaps.h
@@ -142,7 +144,7 @@ set ( SIREMOL_HEADERS
       selectorm.hpp
       selectormol.h
       specifymol.h
-      stereoscopy.h
+      stereochemistry.h
       structureeditor.h
       trajectory.h
       viewsofmol.h
@@ -178,7 +180,7 @@ set ( SIREMOL_SOURCES
       beads.cpp
       bondhunter.cpp
       bondid.cpp
-      bondtype.cpp
+      bondorder.cpp
       cgatomidx.cpp
       cgeditor.cpp
       cgid.cpp
@@ -191,6 +193,7 @@ set ( SIREMOL_SOURCES
       chainproperty.cpp
       chainresid.cpp
       chargeperturbation.cpp
+      chirality.cpp
       connectivity.cpp
       cutgroup.cpp
       cuttingfunction.cpp
@@ -204,6 +207,7 @@ set ( SIREMOL_SOURCES
       geometryperturbation.cpp
       groupatomids.cpp
       groupgroupids.cpp
+      hybridization.cpp
       mgid.cpp
       mgidentifier.cpp
       mgidsandmaps.cpp
@@ -243,7 +247,7 @@ set ( SIREMOL_SOURCES
       select.cpp
       selectormol.cpp
       specifymol.cpp
-      stereoscopy.cpp
+      stereochemistry.cpp
       structureeditor.cpp
       trajectory.cpp
       viewsofmol.cpp

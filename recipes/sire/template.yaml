@@ -17,11 +17,9 @@ requirements:
     - {{ compiler('cxx') }}
     SIRE_BUILD_REQUIREMENTS
   host:
-    - python
     SIRE_RUN_REQUIREMENTS
     SIRE_BSS_REQUIREMENTS
   run:
-    - python
     SIRE_RUN_REQUIREMENTS
 
 test:
@@ -29,6 +27,7 @@ test:
     - SIRE_DONT_PHONEHOME
   requires:
     - pytest
+    SIRE_TEST_REQUIREMENTS
   imports:
     - sire
     - sire.analysis
@@ -52,7 +51,7 @@ test:
   source_files:
     - tests
   commands:
-    - pytest -vvv --color=yes tests
+    - pytest -vvv --color=yes --runveryslow tests
 
 about:
   home: https://github.com/openbiosim/sire
