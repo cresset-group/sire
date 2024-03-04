@@ -419,7 +419,7 @@ void register_OpenMMPMEFEP_class(){
             typedef bool ( ::SireMove::OpenMMPMEFEP::*getMCBarostatMembrane_function_type)(  ) ;
             getMCBarostatMembrane_function_type getMCBarostatMembrane_function_value( &::SireMove::OpenMMPMEFEP::getMCBarostatMembrane );
 
-            OpenMMMDIntegrator_exposer.def(
+            OpenMMPMEFEP_exposer.def(
                 "getMCBarostatMembrane"
                 , getMCBarostatMembrane_function_value
                 , bp::release_gil_policy()
@@ -875,7 +875,7 @@ void register_OpenMMPMEFEP_class(){
             typedef void ( ::SireMove::OpenMMPMEFEP::*setMCBarostatMembrane_function_type)( bool ) ;
             setMCBarostatMembrane_function_type setMCBarostatMembrane_function_value( &::SireMove::OpenMMPMEFEP::setMCBarostatMembrane );
 
-            OpenMMMDIntegrator_exposer.def(
+            OpenMMPMEFEP_exposer.def(
                 "setMCBarostatMembrane"
                 , setMCBarostatMembrane_function_value
                 , ( bp::arg("arg0") )
