@@ -2985,7 +2985,11 @@ void OpenMMPMEFEP::createContext(IntegratorWorkspace &workspace, SireUnits::Dime
     // TriclinicBox
     else if (ptr_sys.property(space_property).isA<TriclinicBox>())
     {
-        const TriclinicBox &space = ptr_sys.property(space_property).asA<TriclinicBox>();
+        TriclinicBox space = ptr_sys.property(space_property).asA<TriclinicBox>();
+
+        // Make sure the box is in reduced form.
+        space.rotate();
+        space.reduce();
 
         // Get the three triclinic box vectors.
         // FIXME: not good practice of using auto here
