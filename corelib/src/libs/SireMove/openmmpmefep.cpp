@@ -2857,6 +2857,63 @@ void OpenMMPMEFEP::createContext(IntegratorWorkspace &workspace, SireUnits::Dime
     if (Debug)
         qDebug() << "openmm nats " << nats;
 
+
+    // Now update coordinates / velocities / dimensions with sire data
+    AtomicVelocityWorkspace &ws = workspace.asA<AtomicVelocityWorkspace>();
+
+    OpenMM::Vec3 a, b, c;
+    const System &ptr_sys = ws.system();
+    const PropertyName &space_property = PropertyName("space");
+
+    // PeriodicBox
+    if (ptr_sys.property(space_property).isA<PeriodicBox>())
+    {
+        const PeriodicBox &space = ptr_sys.property(space_property).asA<PeriodicBox>();
+
+        const double Box_x_Edge_Length = space.dimensions()[0] * OpenMM::NmPerAngstrom; // units in nm
+        const double Box_y_Edge_Length = space.dimensions()[1] * OpenMM::NmPerAngstrom; // units in nm
+        const double Box_z_Edge_Length = space.dimensions()[2] * OpenMM::NmPerAngstrom; // units in nm
+
+        if (Debug)
+            qDebug() << "\nBOX SIZE [A] = (" << space.dimensions()[0] << " , " << space.dimensions()[1] << " ,  "
+                     << space.dimensions()[2] << ")\n\n";
+
+        // Set Periodic Box Condition
+        a = OpenMM::Vec3(Box_x_Edge_Length, 0, 0);
+        b = OpenMM::Vec3(0, Box_y_Edge_Length, 0);
+        c = OpenMM::Vec3(0, 0, Box_z_Edge_Length);
+    }
+    // TriclinicBox
+    else if (ptr_sys.property(space_property).isA<TriclinicBox>())
+    {
+        TriclinicBox space = ptr_sys.property(space_property).asA<TriclinicBox>();
+
+        // Make sure the box is in reduced form.
+        space.reduce();
+
+        // Get the three triclinic box vectors.
+        // FIXME: not good practice of using auto here
+        const auto v0 = space.vector0();
+        const auto v1 = space.vector1();
+        const auto v2 = space.vector2();
+
+        // Get cell matrix components in nm.
+        const double xx = v0.x() * OpenMM::NmPerAngstrom;
+        const double xy = v0.y() * OpenMM::NmPerAngstrom;
+        const double xz = v0.z() * OpenMM::NmPerAngstrom;
+        const double yx = v1.x() * OpenMM::NmPerAngstrom;
+        const double yy = v1.y() * OpenMM::NmPerAngstrom;
+        const double yz = v1.z() * OpenMM::NmPerAngstrom;
+        const double zx = v2.x() * OpenMM::NmPerAngstrom;
+        const double zy = v2.y() * OpenMM::NmPerAngstrom;
+        const double zz = v2.z() * OpenMM::NmPerAngstrom;
+
+        a = OpenMM::Vec3(xx, xy, xz);
+        b = OpenMM::Vec3(yx, yy, yz);
+        c = OpenMM::Vec3(zx, zy, zz);
+    }
+    system_openmm->setDefaultPeriodicBoxVectors(a, b, c);
+
     // Integrator
 
     const double dt = convertTo(timestep.value(), picosecond);
@@ -2953,67 +3010,7 @@ void OpenMMPMEFEP::createContext(IntegratorWorkspace &workspace, SireUnits::Dime
     if (Debug)
         qDebug() << "\nUsing OpenMM platform = " << openmm_context->getPlatform().getName().c_str() << "\n";
 
-    // Now update coordinates / velocities / dimensions with sire data
-    AtomicVelocityWorkspace &ws = workspace.asA<AtomicVelocityWorkspace>();
-
-    const System &ptr_sys = ws.system();
-    const PropertyName &space_property = PropertyName("space");
-
-    // PeriodicBox
-    if (ptr_sys.property(space_property).isA<PeriodicBox>())
-    {
-        const PeriodicBox &space = ptr_sys.property(space_property).asA<PeriodicBox>();
-
-        const double Box_x_Edge_Length = space.dimensions()[0] * OpenMM::NmPerAngstrom; // units in nm
-        const double Box_y_Edge_Length = space.dimensions()[1] * OpenMM::NmPerAngstrom; // units in nm
-        const double Box_z_Edge_Length = space.dimensions()[2] * OpenMM::NmPerAngstrom; // units in nm
-
-        if (Debug)
-            qDebug() << "\nBOX SIZE [A] = (" << space.dimensions()[0] << " , " << space.dimensions()[1] << " ,  "
-                     << space.dimensions()[2] << ")\n\n";
-
-        // Set Periodic Box Condition
-
-        system_openmm->setDefaultPeriodicBoxVectors(OpenMM::Vec3(Box_x_Edge_Length, 0, 0),
-                                                    OpenMM::Vec3(0, Box_y_Edge_Length, 0),
-                                                    OpenMM::Vec3(0, 0, Box_z_Edge_Length));
-
-        openmm_context->setPeriodicBoxVectors(OpenMM::Vec3(Box_x_Edge_Length, 0, 0),
-                                              OpenMM::Vec3(0, Box_y_Edge_Length, 0),
-                                              OpenMM::Vec3(0, 0, Box_z_Edge_Length));
-    }
-    // TriclinicBox
-    else if (ptr_sys.property(space_property).isA<TriclinicBox>())
-    {
-        TriclinicBox space = ptr_sys.property(space_property).asA<TriclinicBox>();
-
-        // Make sure the box is in reduced form.
-        space.reduce();
-
-        // Get the three triclinic box vectors.
-        // FIXME: not good practice of using auto here
-        const auto v0 = space.vector0();
-        const auto v1 = space.vector1();
-        const auto v2 = space.vector2();
-
-        // Get cell matrix components in nm.
-        const double xx = v0.x() * OpenMM::NmPerAngstrom;
-        const double xy = v0.y() * OpenMM::NmPerAngstrom;
-        const double xz = v0.z() * OpenMM::NmPerAngstrom;
-        const double yx = v1.x() * OpenMM::NmPerAngstrom;
-        const double yy = v1.y() * OpenMM::NmPerAngstrom;
-        const double yz = v1.z() * OpenMM::NmPerAngstrom;
-        const double zx = v2.x() * OpenMM::NmPerAngstrom;
-        const double zy = v2.y() * OpenMM::NmPerAngstrom;
-        const double zz = v2.z() * OpenMM::NmPerAngstrom;
-
-        system_openmm->setDefaultPeriodicBoxVectors(OpenMM::Vec3(xx, xy, xz), OpenMM::Vec3(yx, yy, yz),
-                                                    OpenMM::Vec3(zx, zy, zz));
-
-        openmm_context->setPeriodicBoxVectors(OpenMM::Vec3(xx, xy, xz), OpenMM::Vec3(yx, yy, yz),
-                                              OpenMM::Vec3(zx, zy, zz));
-    }
-
+    openmm_context->setPeriodicBoxVectors(a, b, c);
     openmm_context->reinitialize();
 
     // OpenMM vector coordinate
