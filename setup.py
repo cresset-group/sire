@@ -397,10 +397,8 @@ def conda_install(dependencies, install_bss_reqs=False, yes=True):
             deps.append(dep)
 
     dependencies = deps
-    # FIXUP: Quotes being picked up by conda
-    fixup_deps = [dep.replace('"', '') for dep in dependencies]
 
-    cmd = [*conda_install, *fixup_deps]
+    cmd = [*conda_install, *dependencies]
     print("\nInstalling packages using:\n\n%s\n\n" % " ".join(cmd))
     status = subprocess.run(cmd)
 
