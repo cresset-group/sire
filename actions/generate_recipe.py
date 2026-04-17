@@ -91,11 +91,20 @@ def get_git_info(srcdir):
     """Get the git remote URL and branch/tag."""
     gitdir = os.path.join(srcdir, ".git")
 
-    remote = run_cmd(
-        f"git --git-dir={gitdir} --work-tree={srcdir} config --get remote.origin.url"
-    )
-    if not remote.endswith(".git"):
-        remote += ".git"
+    # For PR builds from external forks the checkout remote points to the base
+    # repo, not the fork.  The workflow sets SIRE_REMOTE to the fork's clone
+    # URL so that rattler-build fetches from the right place.
+    env_remote = os.environ.get("SIRE_REMOTE")
+    if env_remote:
+        remote = env_remote
+        if not remote.endswith(".git"):
+            remote += ".git"
+    else:
+        remote = run_cmd(
+            f"git --git-dir={gitdir} --work-tree={srcdir} config --get remote.origin.url"
+        )
+        if not remote.endswith(".git"):
+            remote += ".git"
 
     branch = run_cmd(
         f"git --git-dir={gitdir} --work-tree={srcdir} rev-parse --abbrev-ref HEAD"
@@ -375,6 +384,9 @@ def generate_recipe(data, features, git_remote, git_branch, git_version, git_num
 
     # Script test (pytest)
     lines.append("  - script:")
+    lines.append("      - if: win")
+    lines.append("        then: set PYTHONUTF8=1")
+    lines.append("        else: export PYTHONUTF8=1")
     lines.append("      - pytest -vvv --color=yes --runveryslow ./tests")
     lines.append("    files:")
     lines.append("      source:")
