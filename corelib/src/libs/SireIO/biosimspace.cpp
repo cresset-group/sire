@@ -28,6 +28,8 @@
 #include "biosimspace.h"
 #include "moleculeparser.h"
 
+#include <boost/tuple/tuple.hpp>
+
 #include "SireBase/getinstalldir.h"
 
 #include "SireError/errors.h"
@@ -1758,75 +1760,50 @@ namespace SireIO
         return Vector(nx, ny, nz);
     }
 
-    SireBase::PropertyList mergeIntrascale(const CLJNBPairs &nb0,
-                                           const CLJNBPairs &nb1,
-                                           const MoleculeInfoData &merged_info,
-                                           const QHash<AtomIdx, AtomIdx> &mol0_merged_mapping,
-                                           const QHash<AtomIdx, AtomIdx> &mol1_merged_mapping)
+    boost::tuple<CLJNBPairs, CLJNBPairs> patchIntrascale(const CLJNBPairs &nb0,
+                                                         const CLJNBPairs &nb1,
+                                                         CLJNBPairs intra0,
+                                                         CLJNBPairs intra1,
+                                                         const QHash<AtomIdx, AtomIdx> &mol0_merged_mapping,
+                                                         const QHash<AtomIdx, AtomIdx> &mol1_merged_mapping)
     {
-        // Helper lambda: copy the non-default scaling factors from 'nb' to
-        // 'nb_merged' according to the provided mapping. Takes nb_merged by
-        // reference to avoid copies.
-        auto copyIntrascale = [&](const CLJNBPairs &nb, CLJNBPairs &nb_merged,
-                                  const QHash<AtomIdx, AtomIdx> &mapping)
+        // Apply per-pair scale factors from nb to nb_merged wherever they differ
+        // from the connectivity-derived base values. For standard AMBER molecules
+        // this is a no-op. For force fields with non-default per-pair values
+        // (e.g. GLYCAM funct=2 (1,1) instead of global sf14 for 1-4 pairs)
+        // it replaces the base value with the correct per-pair value.
+        auto patch = [&](const CLJNBPairs &nb, CLJNBPairs &nb_merged,
+                         const QHash<AtomIdx, AtomIdx> &mapping)
         {
-            const int n = nb.nAtoms();
+            // Iterate only over the mapped atoms rather than all atoms in nb.
+            // This is O(k²) in the number of mapped atoms k, which is always
+            // ≤ nb.nAtoms() and can be much smaller.
+            const QList<AtomIdx> keys = mapping.keys();
+            const int k = keys.size();
 
-            for (int i = 0; i < n; ++i)
+            for (int i = 0; i < k; ++i)
             {
-                const AtomIdx ai(i);
+                const AtomIdx ai = keys.at(i);
+                const AtomIdx merged_ai = mapping.value(ai);
 
-                // Get the index of this atom in the merged system.
-                const AtomIdx merged_ai = mapping.value(ai, AtomIdx(-1));
-
-                // If this atom hasn't been mapped to the merged system, then we
-                // can skip it, as any scaling factors involving this atom will
-                // just use the default.
-                if (merged_ai == AtomIdx(-1))
-                    continue;
-
-                for (int j = i; j < n; ++j)
+                for (int j = i; j < k; ++j)
                 {
-                    const AtomIdx aj(j);
+                    const AtomIdx aj = keys.at(j);
+                    const AtomIdx merged_aj = mapping.value(aj);
 
-                    // Get the scaling factor for this pair of atoms.
-                    const CLJScaleFactor sf = nb.get(ai, aj);
+                    const CLJScaleFactor nb_sf = nb.get(ai, aj);
+                    const CLJScaleFactor base_sf = nb_merged.get(merged_ai, merged_aj);
 
-                    // This is a non-default scaling factor, so we need to copy
-                    // it across to the merged intrascale object according to
-                    // the mapping.
-                    if (sf.coulomb() != 1.0 or sf.lj() != 1.0)
-                    {
-                        // Get the index of the second atom in the merged system.
-                        const AtomIdx merged_aj = mapping.value(aj, AtomIdx(-1));
-
-                        // Only set the scaling factor if both atoms have been
-                        // mapped to the merged system. If one of the atoms
-                        // hasn't been mapped, then we can just use the default.
-                        if (merged_aj != AtomIdx(-1))
-                            nb_merged.set(merged_ai, merged_aj, sf);
-                    }
+                    if (nb_sf.coulomb() != base_sf.coulomb() or nb_sf.lj() != base_sf.lj())
+                        nb_merged.set(merged_ai, merged_aj, nb_sf);
                 }
             }
         };
 
-        // Create the intrascale objects for the merged end-states.
-        CLJNBPairs intra0(merged_info);
-        CLJNBPairs intra1(merged_info);
+        patch(nb0, intra0, mol0_merged_mapping);
+        patch(nb1, intra1, mol1_merged_mapping);
 
-        // Copy the non-default scaling factors from the original intrascale
-        // objects to the merged intrascale objects according to the provided
-        // mappings.
-        copyIntrascale(nb1, intra0, mol1_merged_mapping);
-        copyIntrascale(nb0, intra0, mol0_merged_mapping);
-        copyIntrascale(nb0, intra1, mol0_merged_mapping);
-        copyIntrascale(nb1, intra1, mol1_merged_mapping);
-
-        // Assemble the intrascale objects into a property list to return.
-        SireBase::PropertyList ret;
-        ret.append(intra0);
-        ret.append(intra1);
-        return ret;
+        return boost::make_tuple(intra0, intra1);
     }
 
 } // namespace SireIO
