@@ -18,7 +18,6 @@ except:
 from Sire.Tools import OpenMMMD
 from Sire.Tools import readParams
 
-
 parser = argparse.ArgumentParser(
     description="Perform molecular dynamics single topology free energy calculations "
     "using OpenMM",
@@ -75,8 +74,7 @@ parser.add_argument(
     "-m",
     "--morph_file",
     nargs="?",
-    help="The morph file describing the single topology "
-    "calculation to be performed.",
+    help="The morph file describing the single topology calculation to be performed.",
 )
 
 parser.add_argument(
@@ -134,8 +132,7 @@ if args.version:
     print("somd-freenrg -- from Sire release version <%s>" % Sire.__version__)
     print(
         "This particular release can be downloaded here: "
-        "https://github.com/openbiosim/sire/releases/tag/v%s"
-        % Sire.__version__
+        "https://github.com/openbiosim/sire/releases/tag/v%s" % Sire.__version__
     )
     must_exit = True
 

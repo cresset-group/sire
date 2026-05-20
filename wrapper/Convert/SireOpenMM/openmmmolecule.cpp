@@ -66,7 +66,6 @@ OpenMMMolecule::OpenMMMolecule(const Molecule &mol,
         return;
     }
 
-
     // Set up virtual site properties
 
     bool is_perturbable = false;
@@ -93,7 +92,7 @@ OpenMMMolecule::OpenMMMolecule(const Molecule &mol,
 
     if (mol.hasProperty("n_virtual_sites") and mol.property("n_virtual_sites").asAnInteger() > 0)
     {
-        this->has_vs = true; 
+        this->has_vs = true;
         this->vs_parents = mol.property("parents").asA<SireBase::Properties>();
         this->vs_properties = mol.property("virtual_sites").asA<SireBase::Properties>();
         this->n_vs = mol.property("n_virtual_sites").asAnInteger();
@@ -106,7 +105,7 @@ OpenMMMolecule::OpenMMMolecule(const Molecule &mol,
             this->vs_charges = mol.property("vs_charges").asAnArray();
         }
     }
-    else 
+    else
     {
         this->has_vs = false;
     }
@@ -293,6 +292,36 @@ OpenMMMolecule::OpenMMMolecule(const Molecule &mol,
             if (swap_end_states)
             {
                 std::swap(map0, map1);
+            }
+
+            // Read ring-breaking/making bond pairs from molecule properties,
+            // swapping them if end states are inverted so that the members
+            // always reflect the λ=0/λ=1 convention of the (possibly swapped)
+            // end states.
+            auto read_ring_pairs = [&](const QString &prop_name)
+            {
+                QVector<QPair<qint32, qint32>> pairs;
+                if (mol.hasProperty(prop_name))
+                {
+                    const auto &flat = mol.property(prop_name)
+                                           .asA<SireBase::IntegerArrayProperty>()
+                                           .toVector();
+                    pairs.reserve(flat.count() / 2);
+                    for (int k = 0; k + 1 < flat.count(); k += 2)
+                        pairs.append(QPair<qint32, qint32>(flat[k], flat[k + 1]));
+                }
+                return pairs;
+            };
+
+            if (swap_end_states)
+            {
+                this->ring_breaking_pairs = read_ring_pairs("ring_making_bonds");
+                this->ring_making_pairs = read_ring_pairs("ring_breaking_bonds");
+            }
+            else
+            {
+                this->ring_breaking_pairs = read_ring_pairs("ring_breaking_bonds");
+                this->ring_making_pairs = read_ring_pairs("ring_making_bonds");
             }
 
             // save this perturbable map - this will help us set
@@ -2241,8 +2270,6 @@ void OpenMMMolecule::buildExceptions(const Molecule &mol,
             }
         }
     }
-
-
 }
 
 void OpenMMMolecule::copyInCoordsAndVelocities(OpenMM::Vec3 *c, OpenMM::Vec3 *v) const
@@ -2764,7 +2791,7 @@ PerturbableOpenMMMolecule::PerturbableOpenMMMolecule(const OpenMMMolecule &mol,
                 sig0[i] = sig1_data[i];
                 sig0_data = sig0.constData();
             }
-            else if (std::abs(sig1_data[i] <= 1e-9))
+            else if (std::abs(sig1_data[i]) <= 1e-9)
             {
                 sig1[i] = sig0_data[i];
                 sig1_data = sig1.constData();
